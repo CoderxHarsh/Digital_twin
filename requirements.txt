@@ -1,0 +1,12 @@
+chainlit
+langchain>=0.2.0
+langchain-groq
+langchain-community
+langchain-huggingface
+langchain-text-splitters
+langchain-core>=0.2.0
+chromadb
+pypdf
+ddgs
+sentence-transformers
+sympy

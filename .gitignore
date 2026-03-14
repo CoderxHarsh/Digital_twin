@@ -1,0 +1,7 @@
+memory_recruiter.json
+memory_friend.json
+__pycache__/
+*.pyc
+.chainlit/
+.env
+*.pdf
