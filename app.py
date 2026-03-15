@@ -189,6 +189,31 @@ async def on_message(message: cl.Message):
     raw_history = cl.user_session.get("raw_history", [])
     system_prompt = RECRUITER_SYSTEM if mode == "👔 Recruiter" else FRIEND_SYSTEM
 
+    # ── Handle file attachments ──────────────────────────────────────────
+    file_context = ""
+    if message.elements:
+        for element in message.elements:
+            if hasattr(element, "path") and element.path:
+                ext = element.name.split(".")[-1].lower()
+                try:
+                    if ext == "pdf":
+                        from langchain_community.document_loaders import PyPDFLoader
+                        loader = PyPDFLoader(element.path)
+                        pages = loader.load()
+                        text = "\n".join([p.page_content for p in pages])
+                        file_context += f"\n\n[Uploaded PDF: {element.name}]\n{text[:3000]}"
+                        await cl.Message(content=f"📄 PDF `{element.name}` parsed — {len(pages)} pages!").send()
+                    elif ext in ["txt", "csv", "md"]:
+                        with open(element.path, "r", encoding="utf-8") as f:
+                            text = f.read()
+                        file_context += f"\n\n[Uploaded file: {element.name}]\n{text[:3000]}"
+                        await cl.Message(content=f"📎 File `{element.name}` loaded!").send()
+                    else:
+                        file_context += f"\n\n[File uploaded: {element.name}]"
+                except Exception as e:
+                    file_context += f"\n\n[Could not read: {element.name}]"
+    user_input = message.content + file_context
+
     # Build messages for LLM
     messages = [SystemMessage(content=system_prompt)]
     for msg in raw_history:
@@ -196,8 +221,8 @@ async def on_message(message: cl.Message):
             messages.append(HumanMessage(content=msg["content"]))
         else:
             messages.append(AIMessage(content=msg["content"]))
-    messages.append(HumanMessage(content=message.content))
-    raw_history.append({"role": "user", "content": message.content})
+    messages.append(HumanMessage(content=user_input))
+    raw_history.append({"role": "user", "content": user_input})
 
     output = ""
     try:
